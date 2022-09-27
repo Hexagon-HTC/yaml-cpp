@@ -236,17 +236,6 @@ if(MSVC)
 			endforeach()
 		endforeach()
 	endif()
-	#
-	set(LABEL_SUFFIX "${LABEL_SUFFIX} ${LIB_RT_SUFFIX}")
-
-	# b) Change prefix for static libraries
-	set(CMAKE_STATIC_LIBRARY_PREFIX "lib")	# to distinguish static libraries from DLL import libs
-
-	# c) Correct suffixes for static libraries
-	if(NOT BUILD_SHARED_LIBS)
-		### General stuff
-		set(LIB_TARGET_SUFFIX "${LIB_SUFFIX}${LIB_RT_SUFFIX}")
-	endif()
 
 	### Project stuff
 	# /W3 = set warning level; see http://msdn.microsoft.com/en-us/library/thxezb7y.aspx
@@ -264,13 +253,6 @@ set(INCLUDE_INSTALL_ROOT_DIR include)
 set(INCLUDE_INSTALL_DIR ${INCLUDE_INSTALL_ROOT_DIR}/yaml-cpp)
 set(LIB_INSTALL_DIR "lib${LIB_SUFFIX}")
 
-set(_INSTALL_DESTINATIONS
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION ${LIB_INSTALL_DIR}
-	ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
-)
-
-
 ###
 ### Library
 ###
@@ -279,11 +261,11 @@ set_target_properties(yaml-cpp PROPERTIES
   COMPILE_FLAGS "${yaml_c_flags} ${yaml_cxx_flags}"
 )
 
-set_target_properties(yaml-cpp PROPERTIES
-	VERSION "${YAML_CPP_VERSION}"
-	SOVERSION "${YAML_CPP_VERSION_MAJOR}.${YAML_CPP_VERSION_MINOR}"
-	PROJECT_LABEL "yaml-cpp ${LABEL_SUFFIX}"
-)
+target_compile_definitions(yaml-cpp PUBLIC $<$<CONFIG:Debug>:YAML_CPP_DEBUG>)
+
+target_include_directories(yaml-cpp PUBLIC
+                          $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+                          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 if(IPHONE)
 	set_target_properties(yaml-cpp PROPERTIES
@@ -291,19 +273,12 @@ if(IPHONE)
 	)
 endif()
 
-if(MSVC)
-	if(NOT BUILD_SHARED_LIBS)
-		# correct library names
-		set_target_properties(yaml-cpp PROPERTIES
-			DEBUG_POSTFIX "${LIB_TARGET_SUFFIX}d"
-			RELEASE_POSTFIX "${LIB_TARGET_SUFFIX}"
-			MINSIZEREL_POSTFIX "${LIB_TARGET_SUFFIX}"
-			RELWITHDEBINFO_POSTFIX "${LIB_TARGET_SUFFIX}"
-		)
-	endif()
-endif()
+install(TARGETS yaml-cpp EXPORT yaml-cpp-targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
-install(TARGETS yaml-cpp EXPORT yaml-cpp-targets ${_INSTALL_DESTINATIONS})
 install(
 	DIRECTORY ${header_directory}
 	DESTINATION ${INCLUDE_INSTALL_DIR}
@@ -320,11 +295,7 @@ set(CONFIG_INCLUDE_DIRS "${YAML_CPP_SOURCE_DIR}/include")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-config.cmake.in
 	"${PROJECT_BINARY_DIR}/yaml-cpp-config.cmake" @ONLY)
 
-if(WIN32 AND NOT CYGWIN)
-	set(INSTALL_CMAKE_DIR CMake)
-else()
-	set(INSTALL_CMAKE_DIR ${LIB_INSTALL_DIR}/cmake/yaml-cpp)
-endif()
+set(INSTALL_CMAKE_DIR ${LIB_INSTALL_DIR}/cmake/yaml-cpp)
 
 file(RELATIVE_PATH REL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_CMAKE_DIR}" "${CMAKE_INSTALL_PREFIX}/${INCLUDE_INSTALL_ROOT_DIR}")
 set(CONFIG_INCLUDE_DIRS "\${YAML_CPP_CMAKE_DIR}/${REL_INCLUDE_DIR}")
@@ -340,12 +311,9 @@ install(FILES
 	DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
 install(EXPORT yaml-cpp-targets DESTINATION ${INSTALL_CMAKE_DIR})
 
-if(UNIX)
-	set(PC_FILE ${CMAKE_BINARY_DIR}/yaml-cpp.pc)
-	configure_file("yaml-cpp.pc.cmake" ${PC_FILE} @ONLY)
-	install(FILES ${PC_FILE} DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
-endif()
-
+if(MSVC)
+    install(FILES ${CMAKE_BINARY_DIR}/Debug/yaml-cpp.pdb DESTINATION $<IF:$<BOOL:${BUILD_SHARED_LIBS}>,${CMAKE_INSTALL_BINDIR},${CMAKE_INSTALL_LIBDIR}> CONFIGURATIONS Debug)
+endif(MSVC)
 
 ###
 ### Extras
