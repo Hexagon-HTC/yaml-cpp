@@ -165,6 +165,13 @@ if(YAML_CPP_BUILD_TOOLS)
 	add_subdirectory(util)
 endif()
 
+if(MSVC)
+  install(FILES
+    "${CMAKE_BINARY_DIR}/Debug/yaml-cpp.pdb"
+    DESTINATION $<IF:$<BOOL:${BUILD_SHARED_LIBS}>,${CMAKE_INSTALL_BINDIR},${CMAKE_INSTALL_LIBDIR}>
+    OPTIONAL)
+endif()
+
 if (YAML_CPP_CLANG_FORMAT_EXE)
   add_custom_target(format
     COMMAND clang-format --style=file -i $<TARGET_PROPERTY:yaml-cpp,SOURCES>
