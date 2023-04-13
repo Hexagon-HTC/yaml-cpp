@@ -154,7 +154,7 @@ function(cxx_library_with_type name type cxx_flags)
   # Generate debug library name with a postfix.
   set_target_properties(${name}
     PROPERTIES
-    DEBUG_POSTFIX "d")
+    DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
   # Set the output directory for build artifacts
   set_target_properties(${name}
     PROPERTIES
