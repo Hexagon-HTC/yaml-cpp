@@ -154,7 +154,7 @@ function(cxx_library_with_type name type cxx_flags)
   # Generate debug library name with a postfix.
   set_target_properties(${name}
     PROPERTIES
-    DEBUG_POSTFIX "d")
+    DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
   # Set the output directory for build artifacts
   set_target_properties(${name}
     PROPERTIES
@@ -341,9 +341,8 @@ function(install_project)
         get_target_property(t_pdb_name_debug ${t} COMPILE_PDB_NAME_DEBUG)
         get_target_property(t_pdb_output_directory ${t} PDB_OUTPUT_DIRECTORY)
         install(FILES
-          "${t_pdb_output_directory}/\${CMAKE_INSTALL_CONFIG_NAME}/$<$<CONFIG:Debug>:${t_pdb_name_debug}>$<$<NOT:$<CONFIG:Debug>>:${t_pdb_name}>.pdb"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          OPTIONAL)
+          "${t_pdb_output_directory}/\${CMAKE_INSTALL_CONFIG_NAME}/${t_pdb_name}.pdb"
+          DESTINATION $<IF:$<BOOL:${BUILD_SHARED_LIBS}>,${CMAKE_INSTALL_BINDIR},${CMAKE_INSTALL_LIBDIR}>)
       endforeach()
     endif()
     # Configure and install pkgconfig files.
